@@ -48,14 +48,22 @@ MQTT_HELPER_STATIC enum mqtt_state mqtt_state = MQTT_STATE_UNINIT;
 static const char *state_name_get(enum mqtt_state state)
 {
 	switch (state) {
-	case MQTT_STATE_UNINIT: return "MQTT_STATE_UNINIT";
-	case MQTT_STATE_DISCONNECTED: return "MQTT_STATE_DISCONNECTED";
-	case MQTT_STATE_TRANSPORT_CONNECTING: return "MQTT_STATE_TRANSPORT_CONNECTING";
-	case MQTT_STATE_CONNECTING: return "MQTT_STATE_CONNECTING";
-	case MQTT_STATE_TRANSPORT_CONNECTED: return "MQTT_STATE_TRANSPORT_CONNECTED";
-	case MQTT_STATE_CONNECTED: return "MQTT_STATE_CONNECTED";
-	case MQTT_STATE_DISCONNECTING: return "MQTT_STATE_DISCONNECTING";
-	default: return "MQTT_STATE_UNKNOWN";
+	case MQTT_STATE_UNINIT:
+		return "MQTT_STATE_UNINIT";
+	case MQTT_STATE_DISCONNECTED:
+		return "MQTT_STATE_DISCONNECTED";
+	case MQTT_STATE_TRANSPORT_CONNECTING:
+		return "MQTT_STATE_TRANSPORT_CONNECTING";
+	case MQTT_STATE_CONNECTING:
+		return "MQTT_STATE_CONNECTING";
+	case MQTT_STATE_TRANSPORT_CONNECTED:
+		return "MQTT_STATE_TRANSPORT_CONNECTED";
+	case MQTT_STATE_CONNECTED:
+		return "MQTT_STATE_CONNECTED";
+	case MQTT_STATE_DISCONNECTING:
+		return "MQTT_STATE_DISCONNECTING";
+	default:
+		return "MQTT_STATE_UNKNOWN";
 	}
 }
 
@@ -82,8 +90,7 @@ MQTT_HELPER_STATIC void mqtt_state_set(enum mqtt_state new_state)
 		}
 		break;
 	case MQTT_STATE_DISCONNECTED:
-		if (new_state != MQTT_STATE_CONNECTING &&
-		    new_state != MQTT_STATE_UNINIT &&
+		if (new_state != MQTT_STATE_CONNECTING && new_state != MQTT_STATE_UNINIT &&
 		    new_state != MQTT_STATE_TRANSPORT_CONNECTING) {
 			notify_error = true;
 		}
@@ -95,20 +102,17 @@ MQTT_HELPER_STATIC void mqtt_state_set(enum mqtt_state new_state)
 		}
 		break;
 	case MQTT_STATE_CONNECTING:
-		if (new_state != MQTT_STATE_CONNECTED &&
-		    new_state != MQTT_STATE_DISCONNECTED) {
+		if (new_state != MQTT_STATE_CONNECTED && new_state != MQTT_STATE_DISCONNECTED) {
 			notify_error = true;
 		}
 		break;
 	case MQTT_STATE_TRANSPORT_CONNECTED:
-		if (new_state != MQTT_STATE_CONNECTING &&
-		    new_state != MQTT_STATE_DISCONNECTED) {
+		if (new_state != MQTT_STATE_CONNECTING && new_state != MQTT_STATE_DISCONNECTED) {
 			notify_error = true;
 		}
 		break;
 	case MQTT_STATE_CONNECTED:
-		if (new_state != MQTT_STATE_DISCONNECTING &&
-		    new_state != MQTT_STATE_DISCONNECTED) {
+		if (new_state != MQTT_STATE_DISCONNECTING && new_state != MQTT_STATE_DISCONNECTED) {
 			notify_error = true;
 		}
 		break;
@@ -124,15 +128,13 @@ MQTT_HELPER_STATIC void mqtt_state_set(enum mqtt_state new_state)
 	}
 
 	if (notify_error) {
-		LOG_ERR("Invalid state transition, %s --> %s",
-			state_name_get(mqtt_state),
+		LOG_ERR("Invalid state transition, %s --> %s", state_name_get(mqtt_state),
 			state_name_get(new_state));
 
 		__ASSERT(false, "Illegal state transition: %d --> %d", mqtt_state, new_state);
 	}
 
-	LOG_DBG("State transition: %s --> %s",
-		state_name_get(mqtt_state),
+	LOG_DBG("State transition: %s --> %s", state_name_get(mqtt_state),
 		state_name_get(new_state));
 
 	mqtt_state = new_state;
@@ -154,10 +156,8 @@ static int certificates_provision(void)
 	}
 
 	if (sizeof(ca_certificate) > 1) {
-		err = tls_credential_add(CONFIG_MQTT_HELPER_SEC_TAG,
-					 TLS_CREDENTIAL_CA_CERTIFICATE,
-					 ca_certificate,
-					 sizeof(ca_certificate));
+		err = tls_credential_add(CONFIG_MQTT_HELPER_SEC_TAG, TLS_CREDENTIAL_CA_CERTIFICATE,
+					 ca_certificate, sizeof(ca_certificate));
 		if (err < 0) {
 			LOG_ERR("Failed to register CA certificate: %d", err);
 			return err;
@@ -165,10 +165,8 @@ static int certificates_provision(void)
 	}
 
 	if (sizeof(private_key) > 1) {
-		err = tls_credential_add(CONFIG_MQTT_HELPER_SEC_TAG,
-					 TLS_CREDENTIAL_PRIVATE_KEY,
-					 private_key,
-					 sizeof(private_key));
+		err = tls_credential_add(CONFIG_MQTT_HELPER_SEC_TAG, TLS_CREDENTIAL_PRIVATE_KEY,
+					 private_key, sizeof(private_key));
 		if (err < 0) {
 			LOG_ERR("Failed to register private key: %d", err);
 			return err;
@@ -177,8 +175,7 @@ static int certificates_provision(void)
 
 	if (sizeof(device_certificate) > 1) {
 		err = tls_credential_add(CONFIG_MQTT_HELPER_SEC_TAG,
-					 TLS_CREDENTIAL_SERVER_CERTIFICATE,
-					 device_certificate,
+					 TLS_CREDENTIAL_SERVER_CERTIFICATE, device_certificate,
 					 sizeof(device_certificate));
 		if (err < 0) {
 			LOG_ERR("Failed to register public certificate: %d", err);
@@ -192,8 +189,7 @@ static int certificates_provision(void)
 
 	if (sizeof(ca_certificate_2) > 1) {
 		err = tls_credential_add(CONFIG_MQTT_HELPER_SECONDARY_SEC_TAG,
-					 TLS_CREDENTIAL_CA_CERTIFICATE,
-					 ca_certificate_2,
+					 TLS_CREDENTIAL_CA_CERTIFICATE, ca_certificate_2,
 					 sizeof(ca_certificate_2));
 		if (err < 0) {
 			LOG_ERR("Failed to register secondary CA certificate: %d", err);
@@ -203,8 +199,7 @@ static int certificates_provision(void)
 
 	if (sizeof(private_key_2) > 1) {
 		err = tls_credential_add(CONFIG_MQTT_HELPER_SECONDARY_SEC_TAG,
-					 TLS_CREDENTIAL_PRIVATE_KEY,
-					 private_key_2,
+					 TLS_CREDENTIAL_PRIVATE_KEY, private_key_2,
 					 sizeof(private_key_2));
 		if (err < 0) {
 			LOG_ERR("Failed to register secondary private key: %d", err);
@@ -214,8 +209,7 @@ static int certificates_provision(void)
 
 	if (sizeof(device_certificate_2) > 1) {
 		err = tls_credential_add(CONFIG_MQTT_HELPER_SECONDARY_SEC_TAG,
-					 TLS_CREDENTIAL_SERVER_CERTIFICATE,
-					 device_certificate_2,
+					 TLS_CREDENTIAL_SERVER_CERTIFICATE, device_certificate_2,
 					 sizeof(device_certificate_2));
 		if (err < 0) {
 			LOG_ERR("Failed to register secondary public certificate: %d", err);
@@ -244,9 +238,7 @@ static int publish_get_payload(struct mqtt_client *const mqtt_client, size_t len
 static void send_ack(struct mqtt_client *const mqtt_client, uint16_t message_id)
 {
 	int err;
-	const struct mqtt_puback_param ack = {
-		.message_id = message_id
-	};
+	const struct mqtt_puback_param ack = { .message_id = message_id };
 
 	err = mqtt_publish_qos1_ack(mqtt_client, &ack);
 	if (err) {
@@ -292,7 +284,7 @@ MQTT_HELPER_STATIC void on_publish(const struct mqtt_evt *mqtt_evt)
 }
 
 MQTT_HELPER_STATIC void mqtt_evt_handler(struct mqtt_client *const mqtt_client,
-			     const struct mqtt_evt *mqtt_evt)
+					 const struct mqtt_evt *mqtt_evt)
 {
 	switch (mqtt_evt->type) {
 	case MQTT_EVT_CONNACK:
@@ -324,8 +316,7 @@ MQTT_HELPER_STATIC void mqtt_evt_handler(struct mqtt_client *const mqtt_client,
 		on_publish(mqtt_evt);
 		break;
 	case MQTT_EVT_PUBACK:
-		LOG_DBG("MQTT_EVT_PUBACK: id = %d result = %d",
-			mqtt_evt->param.puback.message_id,
+		LOG_DBG("MQTT_EVT_PUBACK: id = %d result = %d", mqtt_evt->param.puback.message_id,
 			mqtt_evt->result);
 
 		if (current_cfg.cb.on_puback) {
@@ -334,8 +325,7 @@ MQTT_HELPER_STATIC void mqtt_evt_handler(struct mqtt_client *const mqtt_client,
 		}
 		break;
 	case MQTT_EVT_SUBACK:
-		LOG_DBG("MQTT_EVT_SUBACK: id = %d result = %d",
-			mqtt_evt->param.suback.message_id,
+		LOG_DBG("MQTT_EVT_SUBACK: id = %d result = %d", mqtt_evt->param.suback.message_id,
 			mqtt_evt->result);
 
 		if (current_cfg.cb.on_suback) {
@@ -355,16 +345,12 @@ MQTT_HELPER_STATIC void mqtt_evt_handler(struct mqtt_client *const mqtt_client,
 	}
 }
 
-static int broker_init(struct sockaddr_storage *broker,
-		       struct mqtt_helper_conn_params *conn_params)
+static int broker_init(struct sockaddr_storage *broker, struct mqtt_helper_conn_params *conn_params)
 {
 	int err;
 	struct addrinfo *result;
 	struct addrinfo *addr;
-	struct addrinfo hints = {
-		.ai_family = AF_INET,
-		.ai_socktype = SOCK_STREAM
-	};
+	struct addrinfo hints = { .ai_family = AF_INET, .ai_socktype = SOCK_STREAM };
 
 	if (sizeof(CONFIG_MQTT_HELPER_STATIC_IP_ADDRESS) > 1) {
 		conn_params->hostname.ptr = CONFIG_MQTT_HELPER_STATIC_IP_ADDRESS;
@@ -392,14 +378,12 @@ static int broker_init(struct sockaddr_storage *broker,
 			broker4->sin_family = AF_INET;
 			broker4->sin_port = htons(CONFIG_MQTT_HELPER_PORT);
 
-			inet_ntop(AF_INET, &broker4->sin_addr.s_addr, ipv4_addr,
-				  sizeof(ipv4_addr));
+			inet_ntop(AF_INET, &broker4->sin_addr.s_addr, ipv4_addr, sizeof(ipv4_addr));
 			LOG_DBG("IPv4 Address found %s", ipv4_addr);
 			break;
 		}
 
-		LOG_DBG("ai_addrlen is %u, while it should be %u",
-			(unsigned int)addr->ai_addrlen,
+		LOG_DBG("ai_addrlen is %u, while it should be %u", (unsigned int)addr->ai_addrlen,
 			(unsigned int)sizeof(struct sockaddr_in));
 
 		addr = addr->ai_next;
@@ -426,22 +410,22 @@ static int client_connect(struct mqtt_helper_conn_params *conn_params)
 		return err;
 	}
 
-	mqtt_client.broker	        = &broker;
-	mqtt_client.evt_cb	        = mqtt_evt_handler;
-	mqtt_client.client_id.utf8      = conn_params->device_id.ptr;
-	mqtt_client.client_id.size      = conn_params->device_id.size;
-	mqtt_client.password	        = NULL;
-	mqtt_client.protocol_version    = MQTT_VERSION_3_1_1;
-	mqtt_client.rx_buf	        = rx_buffer;
-	mqtt_client.rx_buf_size	        = sizeof(rx_buffer);
-	mqtt_client.tx_buf	        = tx_buffer;
-	mqtt_client.tx_buf_size	        = sizeof(tx_buffer);
+	mqtt_client.broker = &broker;
+	mqtt_client.evt_cb = mqtt_evt_handler;
+	mqtt_client.client_id.utf8 = conn_params->device_id.ptr;
+	mqtt_client.client_id.size = conn_params->device_id.size;
+	mqtt_client.password = NULL;
+	mqtt_client.protocol_version = MQTT_VERSION_3_1_1;
+	mqtt_client.rx_buf = rx_buffer;
+	mqtt_client.rx_buf_size = sizeof(rx_buffer);
+	mqtt_client.tx_buf = tx_buffer;
+	mqtt_client.tx_buf_size = sizeof(tx_buffer);
 #if defined(CONFIG_MQTT_LIB_TLS)
-	mqtt_client.transport.type      = MQTT_TRANSPORT_SECURE;
+	mqtt_client.transport.type = MQTT_TRANSPORT_SECURE;
 #else
-	mqtt_client.transport.type	= MQTT_TRANSPORT_NON_SECURE;
+	mqtt_client.transport.type = MQTT_TRANSPORT_NON_SECURE;
 #endif /* CONFIG_MQTT_LIB_TLS */
-	mqtt_client.user_name	        = conn_params->user_name.size > 0 ? &user_name : NULL;
+	mqtt_client.user_name = conn_params->user_name.size > 0 ? &user_name : NULL;
 
 #if defined(CONFIG_MQTT_LIB_TLS)
 	struct mqtt_sec_config *tls_cfg = &(mqtt_client.transport).tls.config;
@@ -453,14 +437,14 @@ static int client_connect(struct mqtt_helper_conn_params *conn_params)
 #endif
 	};
 
-	tls_cfg->peer_verify	        = TLS_PEER_VERIFY_REQUIRED;
-	tls_cfg->cipher_count	        = 0;
-	tls_cfg->cipher_list	        = NULL; /* Use default */
-	tls_cfg->sec_tag_count	        = ARRAY_SIZE(sec_tag_list);
-	tls_cfg->sec_tag_list	        = sec_tag_list;
-	tls_cfg->session_cache	        = TLS_SESSION_CACHE_DISABLED;
-	tls_cfg->hostname	        = conn_params->hostname.ptr;
-	tls_cfg->set_native_tls		= IS_ENABLED(CONFIG_MQTT_HELPER_NATIVE_TLS);
+	tls_cfg->peer_verify = TLS_PEER_VERIFY_REQUIRED;
+	tls_cfg->cipher_count = 0;
+	tls_cfg->cipher_list = NULL; /* Use default */
+	tls_cfg->sec_tag_count = ARRAY_SIZE(sec_tag_list);
+	tls_cfg->sec_tag_list = sec_tag_list;
+	tls_cfg->session_cache = TLS_SESSION_CACHE_DISABLED;
+	tls_cfg->hostname = conn_params->hostname.ptr;
+	tls_cfg->set_native_tls = IS_ENABLED(CONFIG_MQTT_HELPER_NATIVE_TLS);
 
 #if defined(CONFIG_MQTT_HELPER_PROVISION_CERTIFICATES)
 	err = certificates_provision();
@@ -484,12 +468,10 @@ static int client_connect(struct mqtt_helper_conn_params *conn_params)
 	mqtt_state_set(MQTT_STATE_CONNECTING);
 
 	if (IS_ENABLED(CONFIG_MQTT_HELPER_SEND_TIMEOUT)) {
-		struct timeval timeout = {
-			.tv_sec = CONFIG_MQTT_HELPER_SEND_TIMEOUT_SEC
-		};
+		struct timeval timeout = { .tv_sec = CONFIG_MQTT_HELPER_SEND_TIMEOUT_SEC };
 
 #if defined(CONFIG_MQTT_LIB_TLS)
-		int sock  = mqtt_client.transport.tls.sock;
+		int sock = mqtt_client.transport.tls.sock;
 #else
 		int sock = mqtt_client.transport.tcp.sock;
 #endif /* CONFIG_MQTT_LIB_TLS */
@@ -517,8 +499,7 @@ int mqtt_helper_init(struct mqtt_helper_cfg *cfg)
 
 	if (!mqtt_state_verify(MQTT_STATE_UNINIT) && !mqtt_state_verify(MQTT_STATE_DISCONNECTED)) {
 		LOG_ERR("Library is in the wrong state (%s), %s required",
-			state_name_get(mqtt_state_get()),
-			state_name_get(MQTT_STATE_UNINIT));
+			state_name_get(mqtt_state_get()), state_name_get(MQTT_STATE_UNINIT));
 
 		return -EOPNOTSUPP;
 	}
@@ -538,8 +519,7 @@ int mqtt_helper_connect(struct mqtt_helper_conn_params *conn_params)
 
 	if (!mqtt_state_verify(MQTT_STATE_DISCONNECTED)) {
 		LOG_ERR("Library is in the wrong state (%s), %s required",
-			state_name_get(mqtt_state_get()),
-			state_name_get(MQTT_STATE_DISCONNECTED));
+			state_name_get(mqtt_state_get()), state_name_get(MQTT_STATE_DISCONNECTED));
 
 		return -EOPNOTSUPP;
 	}
@@ -563,8 +543,7 @@ int mqtt_helper_disconnect(void)
 
 	if (!mqtt_state_verify(MQTT_STATE_CONNECTED)) {
 		LOG_ERR("Library is in the wrong state (%s), %s required",
-			state_name_get(mqtt_state_get()),
-			state_name_get(MQTT_STATE_CONNECTED));
+			state_name_get(mqtt_state_get()), state_name_get(MQTT_STATE_CONNECTED));
 
 		return -EOPNOTSUPP;
 	}
@@ -593,8 +572,7 @@ int mqtt_helper_subscribe(struct mqtt_subscription_list *sub_list)
 
 	if (!mqtt_state_verify(MQTT_STATE_CONNECTED)) {
 		LOG_ERR("Library is in the wrong state (%s), %s required",
-			state_name_get(mqtt_state_get()),
-			state_name_get(MQTT_STATE_CONNECTED));
+			state_name_get(mqtt_state_get()), state_name_get(MQTT_STATE_CONNECTED));
 
 		return -EOPNOTSUPP;
 	}
@@ -613,14 +591,12 @@ int mqtt_helper_subscribe(struct mqtt_subscription_list *sub_list)
 
 int mqtt_helper_publish(const struct mqtt_publish_param *param)
 {
-	LOG_DBG("Publishing to topic: %.*s",
-		param->message.topic.topic.size,
+	LOG_DBG("Publishing to topic: %.*s", param->message.topic.topic.size,
 		(char *)param->message.topic.topic.utf8);
 
 	if (!mqtt_state_verify(MQTT_STATE_CONNECTED)) {
 		LOG_ERR("Library is in the wrong state (%s), %s required",
-			state_name_get(mqtt_state_get()),
-			state_name_get(MQTT_STATE_CONNECTED));
+			state_name_get(mqtt_state_get()), state_name_get(MQTT_STATE_CONNECTED));
 
 		return -EOPNOTSUPP;
 	}
@@ -632,8 +608,7 @@ int mqtt_helper_deinit(void)
 {
 	if (!mqtt_state_verify(MQTT_STATE_DISCONNECTED)) {
 		LOG_ERR("Library is in the wrong state (%s), %s required",
-			state_name_get(mqtt_state_get()),
-			state_name_get(MQTT_STATE_DISCONNECTED));
+			state_name_get(mqtt_state_get()), state_name_get(MQTT_STATE_DISCONNECTED));
 
 		return -EOPNOTSUPP;
 	}
@@ -649,7 +624,7 @@ int mqtt_helper_deinit(void)
 MQTT_HELPER_STATIC void mqtt_helper_poll_loop(void)
 {
 	int ret;
-	struct pollfd fds[1] = {0};
+	struct pollfd fds[1] = { 0 };
 
 	LOG_DBG("Waiting for connection_poll_sem");
 	k_sem_take(&connection_poll_sem, K_FOREVER);
@@ -657,7 +632,7 @@ MQTT_HELPER_STATIC void mqtt_helper_poll_loop(void)
 
 	fds[0].events = POLLIN;
 #if defined(CONFIG_MQTT_LIB_TLS)
-	fds[0].fd  = mqtt_client.transport.tls.sock;
+	fds[0].fd = mqtt_client.transport.tls.sock;
 #else
 	fds[0].fd = mqtt_client.transport.tcp.sock;
 #endif /* CONFIG_MQTT_LIB_TLS */
@@ -753,6 +728,5 @@ static void mqtt_helper_run(void)
 	}
 }
 
-K_THREAD_DEFINE(mqtt_helper_thread, CONFIG_MQTT_HELPER_STACK_SIZE,
-		mqtt_helper_run, false, NULL, NULL,
-		K_LOWEST_APPLICATION_THREAD_PRIO, 0, 0);
+K_THREAD_DEFINE(mqtt_helper_thread, CONFIG_MQTT_HELPER_STACK_SIZE, mqtt_helper_run, false, NULL,
+		NULL, K_LOWEST_APPLICATION_THREAD_PRIO, 0, 0);
