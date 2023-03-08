@@ -352,6 +352,10 @@ static int broker_init(struct sockaddr_storage *broker, struct mqtt_helper_conn_
 	struct addrinfo *addr;
 	struct addrinfo hints = { .ai_socktype = SOCK_STREAM };
 
+	if (IS_ENABLED(CONFIG_MQTT_HELPER_IPV4_ONLY)) {
+		hints.ai_family = AF_INET;
+	}
+
 	if (sizeof(CONFIG_MQTT_HELPER_STATIC_IP_ADDRESS) > 1) {
 		conn_params->hostname.ptr = CONFIG_MQTT_HELPER_STATIC_IP_ADDRESS;
 

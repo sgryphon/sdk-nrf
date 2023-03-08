@@ -12,6 +12,12 @@ menuconfig MQTT_HELPER
 
 if MQTT_HELPER
 
+config MQTT_HELPER_IPV4_ONLY
+	bool "Use legacy IPv4 only"
+	help
+	  Only use legacy IPv4 addresses when resolving MQTT broker, even if
+		running in dual stack	(useful if IPv6 is not working).
+
 config MQTT_HELPER_NATIVE_TLS
 	bool "Native TLS socket"
 	help

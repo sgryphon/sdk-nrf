@@ -96,8 +96,9 @@ Additional configuration
 
 Check and configure the following library Kconfig options specific to the MQTT helper library:
 
- * :kconfig:option:`CONFIG_MQTT_HELPER_PORT` - This option sets the MQTT broker port.
- * :kconfig:option:`CONFIG_MQTT_HELPER_SEC_TAG` - This option sets the MQTT connection with TLS security tag.
+* :kconfig:option:`CONFIG_MQTT_HELPER_PORT` - This option sets the MQTT broker port.
+* :kconfig:option:`CONFIG_MQTT_HELPER_SEC_TAG` - This option sets the MQTT connection with TLS security tag.
+* :kconfig:option:`CONFIG_MQTT_HELPER_IPV4_ONLY` - Force using legacy IPv4 for even when running dual stack.
 
 Configuration files
 ===================

@@ -16,6 +16,7 @@ To use the MQTT helper library, enable the :kconfig:option:`CONFIG_MQTT_HELPER` 
 
 Additionally, configure the following options as per the needs of your application:
 
+* :kconfig:option:`CONFIG_MQTT_HELPER_IPV4_ONLY`
 * :kconfig:option:`CONFIG_MQTT_HELPER_NATIVE_TLS`
 * :kconfig:option:`CONFIG_MQTT_HELPER_PORT`
 * :kconfig:option:`CONFIG_MQTT_HELPER_SEC_TAG`
