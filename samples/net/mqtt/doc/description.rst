@@ -173,6 +173,26 @@ The following serial UART output is displayed in the terminal emulator:
       [00:04:01.475,982] <inf> transport: Publishing message: "Hello MQTT! Current uptime is: 241458" on topic: "my/publish/topic"
       [00:05:01.475,982] <inf> transport: Publishing message: "Hello MQTT! Current uptime is: 301459" on topic: "my/publish/topic"
 
+Sample output using LTE with IPv6:
+
+.. code-block:: console
+
+      *** Booting Zephyr OS build v3.2.99-ncs2 ***
+      [00:00:00.500,061] <inf> network: Connecting to LTE...
+      [00:00:03.022,644] <inf> network: PDN connection activated
+      [00:00:08.338,256] <inf> mqtt_helper: IPv6 Address found 2001:41d0:1:925e::1
+      [00:00:11.950,714] <inf> transport: Connected to MQTT broker
+      [00:00:11.950,775] <inf> transport: Hostname: test.mosquitto.org
+      [00:00:11.950,805] <inf> transport: Client ID: 350457791735879
+      [00:00:11.950,805] <inf> transport: Port: 8883
+      [00:00:11.950,836] <inf> transport: TLS: Yes
+      [00:00:12.784,667] <inf> transport: Subscribed to topic my/subscribe/topic
+      [00:00:12.784,973] <inf> transport: Received payload: $ on topic: my/subscribe/topic
+      [00:01:00.492,706] <inf> transport: Published message: "Hello MQTT! Current uptime is: 60491" on topic: "my/publish/topic"
+      [00:01:10.332,122] <inf> transport: Received payload: Test message on topic: my/subscribe/topic
+      [00:02:00.501,220] <inf> transport: Published message: "Hello MQTT! Current uptime is: 120491" on topic: "my/publish/topic"
+
+
 Reconnection logic
 ------------------
 
