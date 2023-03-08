@@ -46,7 +46,7 @@ void pdn_event_handler(uint8_t cid, enum pdn_event event, int reason)
 		LOG_DBG("Event: PDP context %d, %s", cid, pdn_esm_strerror(reason));
 		return;
 	case PDN_EVENT_ACTIVATED:
-		LOG_INF("PDN connection activated, IPv4 up");
+		LOG_INF("PDN connection activated");
 		status = NETWORK_CONNECTED;
 		break;
 	case PDN_EVENT_DEACTIVATED:
@@ -103,6 +103,5 @@ static void network_task(void)
 	}
 }
 
-K_THREAD_DEFINE(network_task_id,
-		CONFIG_MQTT_SAMPLE_NETWORK_THREAD_STACK_SIZE,
-		network_task, NULL, NULL, NULL, 3, 0, 0);
+K_THREAD_DEFINE(network_task_id, CONFIG_MQTT_SAMPLE_NETWORK_THREAD_STACK_SIZE, network_task, NULL,
+		NULL, NULL, 3, 0, 0);
