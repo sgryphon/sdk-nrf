@@ -350,7 +350,9 @@ static int broker_init(struct sockaddr_storage *broker, struct mqtt_helper_conn_
 	int err;
 	struct addrinfo *result;
 	struct addrinfo *addr;
-	struct addrinfo hints = { .ai_family = AF_INET, .ai_socktype = SOCK_STREAM };
+	struct addrinfo hints = { .ai_socktype = SOCK_STREAM };
+	char addr_str[NET_IPV6_ADDR_LEN];
+	bool found = false;
 
 	if (sizeof(CONFIG_MQTT_HELPER_STATIC_IP_ADDRESS) > 1) {
 		conn_params->hostname.ptr = CONFIG_MQTT_HELPER_STATIC_IP_ADDRESS;
@@ -369,28 +371,42 @@ static int broker_init(struct sockaddr_storage *broker, struct mqtt_helper_conn_
 	addr = result;
 
 	while (addr != NULL) {
-		if (addr->ai_addrlen == sizeof(struct sockaddr_in)) {
+		inet_ntop(addr->ai_family, &((struct sockaddr_in *)addr->ai_addr)->sin_addr,
+			  addr_str, sizeof(addr_str));
+		LOG_INF("IP Address found %s (%s)", addr_str, net_family2str(addr->ai_family));
+
+		if (addr->ai_family == AF_INET6) {
+			struct sockaddr_in6 *broker6 = ((struct sockaddr_in6 *)broker);
+
+			memcpy(broker6->sin6_addr.s6_addr,
+			       ((struct sockaddr_in6 *)addr->ai_addr)->sin6_addr.s6_addr,
+			       sizeof(struct in6_addr));
+			broker6->sin6_family = AF_INET6;
+			broker6->sin6_port = htons(CONFIG_MQTT_HELPER_PORT);
+			found = true;
+			break;
+		} else if (addr->ai_family == AF_INET) {
 			struct sockaddr_in *broker4 = ((struct sockaddr_in *)broker);
-			char ipv4_addr[INET_ADDRSTRLEN];
 
 			broker4->sin_addr.s_addr =
 				((struct sockaddr_in *)addr->ai_addr)->sin_addr.s_addr;
 			broker4->sin_family = AF_INET;
 			broker4->sin_port = htons(CONFIG_MQTT_HELPER_PORT);
-
-			inet_ntop(AF_INET, &broker4->sin_addr.s_addr, ipv4_addr, sizeof(ipv4_addr));
-			LOG_DBG("IPv4 Address found %s", ipv4_addr);
+			found = true;
 			break;
+		} else {
+			LOG_DBG("Unknown address family %d", (unsigned int)addr->ai_family);
 		}
 
-		LOG_DBG("ai_addrlen is %u, while it should be %u", (unsigned int)addr->ai_addrlen,
-			(unsigned int)sizeof(struct sockaddr_in));
-
 		addr = addr->ai_next;
-		break;
 	}
 
 	freeaddrinfo(result);
+
+	if (!found) {
+		LOG_ERR("No address found for %s", conn_params->hostname.ptr);
+		return -1;
+	}
 
 	return err;
 }
