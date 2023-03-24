@@ -29,6 +29,11 @@ config AZURE_IOT_HUB_HOSTNAME
 	help
 	  Hostname to Azure IoT Hub instance.
 
+config AZURE_IOT_HUB_KEY
+	string "Azure IoT Hub key"
+	help
+	  Device key, used to create Shared Access Signature (aka connection string)
+
 config AZURE_IOT_HUB_AUTO_DEVICE_TWIN_REQUEST
 	bool "Request device twin automatically when connected"
 	default y

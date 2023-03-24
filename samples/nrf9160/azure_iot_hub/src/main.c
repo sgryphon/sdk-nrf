@@ -526,9 +526,17 @@ static int dps_run(struct azure_iot_hub_buf *hostname, struct azure_iot_hub_buf 
 
 void main(void)
 {
+	printk("0");
+	k_msleep(1000);
+	printk("1");
+	k_msleep(1000);
+	printk("2");
+
 	int err;
 	char device_id[128] = CONFIG_AZURE_IOT_HUB_DEVICE_ID;
 	char hostname[128] = CONFIG_AZURE_IOT_HUB_HOSTNAME;
+	char key[128] = CONFIG_AZURE_IOT_HUB_KEY;
+	
 	struct azure_iot_hub_config cfg = {
 		.device_id = {
 			.ptr = device_id,
@@ -537,6 +545,10 @@ void main(void)
 		.hostname = {
 			.ptr = hostname,
 			.size = sizeof(CONFIG_AZURE_IOT_HUB_HOSTNAME) - 1,
+		},
+		.key = {
+			.ptr = key,
+			.size = sizeof(CONFIG_AZURE_IOT_HUB_KEY) - 1,
 		},
 		.use_dps = true,
 	};
@@ -556,6 +568,8 @@ void main(void)
 	k_sem_take(&network_connected_sem, K_FOREVER);
 	LOG_INF("Connected to LTE network");
 #endif
+
+	k_msleep(1000);
 
 #if IS_ENABLED(CONFIG_AZURE_IOT_HUB_DPS)
 	/* Using the device ID as DPS registration ID. */

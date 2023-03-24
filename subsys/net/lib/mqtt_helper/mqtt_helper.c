@@ -23,6 +23,8 @@
 #endif /* CONFIG_MQTT_HELPER_PROVISION_CERTIFICATES */
 #include <zephyr/logging/log.h>
 
+#include <modem/modem_key_mgmt.h>
+
 LOG_MODULE_REGISTER(mqtt_helper, CONFIG_MQTT_HELPER_LOG_LEVEL);
 
 #if defined(CONFIG_MQTT_LIB_TLS)
@@ -428,6 +430,10 @@ static int client_connect(struct mqtt_helper_conn_params *conn_params)
 		.utf8 = conn_params->user_name.ptr,
 		.size = conn_params->user_name.size,
 	};
+	struct mqtt_utf8 password = {
+		.utf8 = conn_params->password.ptr,
+		.size = conn_params->password.size,
+	};
 
 	mqtt_client_init(&mqtt_client);
 
@@ -436,11 +442,28 @@ static int client_connect(struct mqtt_helper_conn_params *conn_params)
 		return err;
 	}
 
+/*
+	char password[500] = { 0 };
+	int buffer_len = sizeof(password);
+	err = modem_key_mgmt_read(CONFIG_MQTT_HELPER_SEC_TAG, MODEM_KEY_MGMT_CRED_TYPE_PSK, password, &buffer_len);
+	if (err) {
+		return err;
+	}
+
+	int password_len = strlen(password);
+	struct mqtt_utf8 password_utf8 = {
+		.utf8 = &password,
+		.size = &password_len
+	};
+*/
+	LOG_INF("**Key** %s", password.utf8);
+	LOG_INF("**User** %s", user_name.utf8);
+
 	mqtt_client.broker	        = &broker;
 	mqtt_client.evt_cb	        = mqtt_evt_handler;
 	mqtt_client.client_id.utf8      = conn_params->device_id.ptr;
 	mqtt_client.client_id.size      = conn_params->device_id.size;
-	mqtt_client.password	        = NULL;
+	mqtt_client.password	        = &password;
 	mqtt_client.protocol_version    = MQTT_VERSION_3_1_1;
 	mqtt_client.rx_buf	        = rx_buffer;
 	mqtt_client.rx_buf_size	        = sizeof(rx_buffer);
@@ -448,8 +471,10 @@ static int client_connect(struct mqtt_helper_conn_params *conn_params)
 	mqtt_client.tx_buf_size	        = sizeof(tx_buffer);
 #if defined(CONFIG_MQTT_LIB_TLS)
 	mqtt_client.transport.type      = MQTT_TRANSPORT_SECURE;
+	LOG_INF("MQTT_TRANSPORT_SECURE");
 #else
 	mqtt_client.transport.type	= MQTT_TRANSPORT_NON_SECURE;
+	LOG_INF("MQTT_TRANSPORT_NON_SECURE");
 #endif /* CONFIG_MQTT_LIB_TLS */
 	mqtt_client.user_name	        = conn_params->user_name.size > 0 ? &user_name : NULL;
 

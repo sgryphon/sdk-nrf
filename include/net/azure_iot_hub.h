@@ -303,10 +303,16 @@ struct azure_iot_hub_config {
 	 *  set to true, the provided hostname is ignored.
 	 */
 	struct azure_iot_hub_buf hostname;
+
 	/** Device id for the Azure IoT Hub connection.
 	 *  If the buffer size is zero, the device ID provided by Kconfig is used.
 	 */
 	struct azure_iot_hub_buf device_id;
+
+	/** Device key for the Azure IoT Hub connection.
+	 * If using X.509 client certificates, the key must be empty.
+	*/
+	struct azure_iot_hub_buf key;
 
 	/** Use DPS to obtain hostname and device ID if true.
 	 *  Using DPS requires that @kconfig{CONFIG_AZURE_IOT_HUB_DPS} is enabled and DPS

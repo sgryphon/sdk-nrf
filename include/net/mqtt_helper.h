@@ -71,7 +71,9 @@ struct mqtt_helper_conn_params {
 	/* The hostname must be null-terminated. */
 	struct mqtt_helper_buf hostname;
 	struct mqtt_helper_buf device_id;
+	struct mqtt_helper_buf client_id;
 	struct mqtt_helper_buf user_name;
+	struct mqtt_helper_buf password;
 };
 
 /** @brief Initialize the MQTT helper.
