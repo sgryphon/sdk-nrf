@@ -22,6 +22,7 @@ zephyr_include_directories(
 
 zephyr_library_sources(
 	# Azure SDK for C - CORE lib
+	${ZEPHYR_AZURE_SDK_FOR_C_MODULE_DIR}/sdk/src/azure/core/az_base64.c
 	${ZEPHYR_AZURE_SDK_FOR_C_MODULE_DIR}/sdk/src/azure/core/az_context.c
 	${ZEPHYR_AZURE_SDK_FOR_C_MODULE_DIR}/sdk/src/azure/core/az_json_reader.c
 	${ZEPHYR_AZURE_SDK_FOR_C_MODULE_DIR}/sdk/src/azure/core/az_json_token.c
@@ -35,6 +36,7 @@ zephyr_library_sources(
 	${ZEPHYR_AZURE_SDK_FOR_C_MODULE_DIR}/sdk/src/azure/iot/az_iot_hub_client_commands.c
 	${ZEPHYR_AZURE_SDK_FOR_C_MODULE_DIR}/sdk/src/azure/iot/az_iot_hub_client_methods.c
 	${ZEPHYR_AZURE_SDK_FOR_C_MODULE_DIR}/sdk/src/azure/iot/az_iot_hub_client_properties.c
+  ${ZEPHYR_AZURE_SDK_FOR_C_MODULE_DIR}/sdk/src/azure/iot/az_iot_hub_client_sas.c
 	${ZEPHYR_AZURE_SDK_FOR_C_MODULE_DIR}/sdk/src/azure/iot/az_iot_hub_client_telemetry.c
 	${ZEPHYR_AZURE_SDK_FOR_C_MODULE_DIR}/sdk/src/azure/iot/az_iot_hub_client_twin.c
 	${ZEPHYR_AZURE_SDK_FOR_C_MODULE_DIR}/sdk/src/azure/iot/az_iot_provisioning_client.c

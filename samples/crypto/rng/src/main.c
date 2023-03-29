@@ -73,6 +73,14 @@ int produce_rng_data(void)
 
 int main(void)
 {
+  LOG_INF("0");
+	k_msleep(1000);
+	LOG_INF("1");
+	k_msleep(1000);
+	LOG_INF("2");
+	k_msleep(1000);
+	LOG_INF("3");
+
 	int status;
 
 	LOG_INF("Starting RNG example...");

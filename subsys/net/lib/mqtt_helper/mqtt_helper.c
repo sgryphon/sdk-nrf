@@ -456,14 +456,18 @@ static int client_connect(struct mqtt_helper_conn_params *conn_params)
 		.size = &password_len
 	};
 */
-	LOG_INF("**Key** %s", password.utf8);
-	LOG_INF("**User** %s", user_name.utf8);
+	LOG_INF("**Client ID %d** %.*s", conn_params->client_id.size, conn_params->client_id.size, conn_params->client_id.ptr);
+	LOG_INF("**User %d** %s", user_name.size, user_name.utf8);
+	LOG_INF("**Password %d** %s", password.size, password.utf8);
+	LOG_INF("**Tag** %d, %d", CONFIG_MQTT_HELPER_SEC_TAG, CONFIG_MQTT_HELPER_SECONDARY_SEC_TAG);
+	LOG_INF("**Buffer Size** %d", CONFIG_MQTT_HELPER_RX_TX_BUFFER_SIZE);
 
 	mqtt_client.broker	        = &broker;
 	mqtt_client.evt_cb	        = mqtt_evt_handler;
-	mqtt_client.client_id.utf8      = conn_params->device_id.ptr;
-	mqtt_client.client_id.size      = conn_params->device_id.size;
-	mqtt_client.password	        = &password;
+	mqtt_client.client_id.utf8      = conn_params->client_id.ptr;
+	mqtt_client.client_id.size      = conn_params->client_id.size;
+	mqtt_client.user_name	        = conn_params->user_name.size > 0 ? &user_name : NULL;
+	mqtt_client.password	        = conn_params->password.size > 0 ? &password : NULL;
 	mqtt_client.protocol_version    = MQTT_VERSION_3_1_1;
 	mqtt_client.rx_buf	        = rx_buffer;
 	mqtt_client.rx_buf_size	        = sizeof(rx_buffer);
@@ -476,7 +480,6 @@ static int client_connect(struct mqtt_helper_conn_params *conn_params)
 	mqtt_client.transport.type	= MQTT_TRANSPORT_NON_SECURE;
 	LOG_INF("MQTT_TRANSPORT_NON_SECURE");
 #endif /* CONFIG_MQTT_LIB_TLS */
-	mqtt_client.user_name	        = conn_params->user_name.size > 0 ? &user_name : NULL;
 
 #if defined(CONFIG_MQTT_LIB_TLS)
 	struct mqtt_sec_config *tls_cfg = &(mqtt_client.transport).tls.config;

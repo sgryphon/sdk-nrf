@@ -10,12 +10,13 @@
 #include <date_time.h>
 //#include <openssl/hmac.h>
 #include <psa/crypto.h>
-//#include <psa/crypto_extra.h>
+#include <psa/crypto_extra.h>
 
 #include <net/azure_iot_hub_dps.h>
 #include <net/azure_iot_hub.h>
 
 #include <azure/az_core.h>
+#include <azure/core/az_base64.h>
 #include <azure/az_iot.h>
 
 #include <net/mqtt_helper.h>
@@ -25,6 +26,8 @@
 #endif
 
 #include <zephyr/logging/log.h>
+
+#include "hmac_sha256.h"
 
 LOG_MODULE_REGISTER(azure_iot_hub, CONFIG_AZURE_IOT_HUB_LOG_LEVEL);
 
@@ -721,7 +724,7 @@ int azure_iot_hub_init(const azure_iot_hub_evt_handler_t event_handler)
 }
 
 
-static int hmac_sha256_sign_signature(
+int hmac_sha256_sign_signature(
     az_span decoded_key,
     az_span signature,
     az_span signed_signature,
@@ -731,11 +734,12 @@ static int hmac_sha256_sign_signature(
 	psa_status_t status;
 	psa_mac_operation_t operation = PSA_MAC_OPERATION_INIT;
 
-	LOG_INF("Set up key");
+	LOG_DBG("Setting up key, len %d, [0] %d, [1] %d", az_span_size(decoded_key), az_span_ptr(decoded_key)[0], az_span_ptr(decoded_key)[1]);
 
   static psa_key_handle_t key_handle;
 	// Configure the key attributes
-	psa_key_attributes_t key_attributes = PSA_KEY_ATTRIBUTES_INIT;
+//	psa_key_attributes_t key_attributes = PSA_KEY_ATTRIBUTES_INIT;
+	psa_key_attributes_t key_attributes = psa_key_attributes_init();
 
 	psa_set_key_usage_flags(&key_attributes,
 				PSA_KEY_USAGE_VERIFY_HASH | PSA_KEY_USAGE_SIGN_HASH);
@@ -744,24 +748,30 @@ static int hmac_sha256_sign_signature(
 	psa_set_key_type(&key_attributes, PSA_KEY_TYPE_HMAC);
 	psa_set_key_bits(&key_attributes, 256);
 
-	status = psa_import_key(&key_attributes,
-		az_span_ptr(decoded_key),
-		(size_t)az_span_size(decoded_key),
-		&key_handle);
+	status = psa_generate_key(&key_attributes, &key_handle);
 	if (status != PSA_SUCCESS) {
 		LOG_INF("psa_generate_key failed! (Error: %d)", status);
 		return -EFAULT;
 	}
 
+	// status = psa_import_key(&key_attributes,
+	// 	az_span_ptr(decoded_key),
+	// 	(size_t)az_span_size(decoded_key),
+	// 	&key_handle);
+	// if (status != PSA_SUCCESS) {
+	// 	LOG_ERR("psa_import_key failed! (Error: %d)", status);
+	// 	return -EFAULT;
+	// }
+
 	// After the key handle is acquired the attributes are not needed
 	psa_reset_key_attributes(&key_attributes);
 
-	LOG_INF("Signing using HMAC ...");
+	LOG_DBG("Signing using HMAC ...");
 
 	// Initialize the HMAC signing operation
 	status = psa_mac_sign_setup(&operation, key_handle, PSA_ALG_HMAC(PSA_ALG_SHA_256));
 	if (status != PSA_SUCCESS) {
-		LOG_INF("psa_mac_sign_setup failed! (Error: %d)", status);
+		LOG_ERR("psa_mac_sign_setup failed! (Error: %d)", status);
 		return -EFAULT;
 	}
 
@@ -771,7 +781,7 @@ static int hmac_sha256_sign_signature(
 		(size_t)az_span_size(signature) //sizeof(m_plain_text)
 	);
 	if (status != PSA_SUCCESS) {
-		LOG_INF("psa_mac_update failed! (Error: %d)", status);
+		LOG_ERR("psa_mac_update failed! (Error: %d)", status);
 		return -EFAULT;
 	}
 
@@ -781,13 +791,13 @@ static int hmac_sha256_sign_signature(
     (size_t)az_span_size(signed_signature),
 		&output_len);
 	if (status != PSA_SUCCESS) {
-		LOG_INF("psa_mac_sign_finish failed! (Error: %d)", status);
+		LOG_ERR("psa_mac_sign_finish failed! (Error: %d)", status);
 		return -EFAULT;
 	}
 
   *out_signed_signature = az_span_create(az_span_ptr(signed_signature), (int32_t)output_len);
 
-	LOG_INF("Signing successful!");
+	LOG_DBG("Signing successful!");
 
 	return 0;
 }
@@ -1060,7 +1070,7 @@ int azure_iot_hub_connect(const struct azure_iot_hub_config *config)
 		sizeof(user_name_buf), user_name_len);
 
 	char final_password[512] = { 0 };
-	size_t final_password_len;
+	size_t final_password_len = 0;
 
 	if (config->key.size > 0) {
 		LOG_DBG("Generating SAS signature");
@@ -1071,11 +1081,10 @@ int azure_iot_hub_connect(const struct azure_iot_hub_config *config)
 			LOG_ERR("date_time_now, error: %d", err);
 			goto exit;
 		}
-		/* 1 day expiry */
+		// 1 day expiry
 		uint64_t token_expiration_unix_time_s = unix_time_ms/1000 + 86400;
 
-		char signature_buf[44];
-		size_t signature_len = 44;
+		char signature_buf[256] = { 0 };
 		az_span signature_span = AZ_SPAN_FROM_BUFFER(signature_buf);
 		err = az_iot_hub_client_sas_get_signature(&iot_hub_client, token_expiration_unix_time_s, signature_span, &signature_span);
 		if (az_result_failed(err)) {
@@ -1083,17 +1092,17 @@ int azure_iot_hub_connect(const struct azure_iot_hub_config *config)
 			err = -EFAULT;
 			goto exit;
 		}
-		LOG_DBG("Signature: %.*s", signature_len, signature_buf);
+		LOG_DBG("Signature %d: [%.*s]", az_span_size(signature_span), az_span_size(signature_span), az_span_ptr(signature_span));
 
-		char decoded_sas_key_buf[128];
-		az_span decoded_sas_key_bytes_span = AZ_SPAN_FROM_BUFFER(decoded_sas_key_buf);
+		char decoded_sas_key_buf[128] = { 0 };
 		az_span key_span = az_span_create(config->key.ptr, config->key.size);
 		int32_t bytes_written;
-		err = az_base64_decode(decoded_sas_key_bytes_span, key_span, &bytes_written);
+		err = az_base64_decode(AZ_SPAN_FROM_BUFFER(decoded_sas_key_buf), key_span, &bytes_written);
 		if (az_result_failed(err)) {
 			LOG_ERR("Failed to decode key, az error: 0x%08x", err);
 			goto exit;
 		}
+		az_span decoded_sas_key_bytes_span = az_span_create(decoded_sas_key_buf, bytes_written);
 
 		/*
 		char signed_bytes_buf[256] = { 0 };
@@ -1114,22 +1123,39 @@ int azure_iot_hub_connect(const struct azure_iot_hub_config *config)
 		az_span signed_bytes_span = AZ_SPAN_FROM_BUFFER(signed_bytes_buf);
 		*/
 
-		// HMAC-SHA256 sign the signature with the decoded key.
-		char sas_hmac256_signed_signature_buffer[128];
-		az_span sas_hmac256_signed_signature = AZ_SPAN_FROM_BUFFER(sas_hmac256_signed_signature_buffer);
-		hmac_sha256_sign_signature(
-				decoded_sas_key_bytes_span, signature_span, sas_hmac256_signed_signature, &sas_hmac256_signed_signature);
+		// LOG_DBG("HMAC-SHA256 sign the signature with the decoded key.");
+		// char sas_hmac256_signed_signature_buffer[128];
+		// az_span sas_hmac256_signed_signature = AZ_SPAN_FROM_BUFFER(sas_hmac256_signed_signature_buffer);
+		// err = hmac_sha256_sign_signature(
+		// 		decoded_sas_key_bytes_span, signature_span, sas_hmac256_signed_signature, &sas_hmac256_signed_signature);
+		// if (err) {
+		// 	LOG_ERR("hmac_sha256_sign_signature, error: %d", err);
+		// 	goto exit;
+		// }
 
+		LOG_DBG("HMAC-SHA256 sign the signature with the decoded key.");
+		char hmac256_byte_buffer[32] = { 0 };
+		size_t hmac_bytes_written = hmac_sha256(
+			az_span_ptr(decoded_sas_key_bytes_span), // Pointer to key buffer.
+			az_span_size(decoded_sas_key_bytes_span), // Length of key.
+			az_span_ptr(signature_span), // Pointer to input data buffer.
+			az_span_size(signature_span), // Length of input data.
+			hmac256_byte_buffer,
+			sizeof(hmac256_byte_buffer)
+		);
+		az_span sas_hmac256_signed_signature = az_span_create(hmac256_byte_buffer, hmac_bytes_written);
+
+		LOG_DBG("Encoding HMAC");
 		char signed_bytes_base64_encoded_buf[256] = { 0 };
-		az_span signed_bytes_base64_encoded_span = AZ_SPAN_FROM_BUFFER(signed_bytes_base64_encoded_buf);
 		int32_t chars_written;
-		err = az_base64_encode(signed_bytes_base64_encoded_span, sas_hmac256_signed_signature, &chars_written);
+		err = az_base64_encode(AZ_SPAN_FROM_BUFFER(signed_bytes_base64_encoded_buf), sas_hmac256_signed_signature, &chars_written);
 		if (az_result_failed(err)) {
 			LOG_ERR("Failed to encode hash, az error: 0x%08x", err);
 			goto exit;
 		}
+		az_span signed_bytes_base64_encoded_span = az_span_create(signed_bytes_base64_encoded_buf, chars_written);
 
-		LOG_DBG("Encoded HMAC: %s", signed_bytes_base64_encoded_buf);
+		LOG_DBG("Encoded HMAC %d: %s", az_span_size(signed_bytes_base64_encoded_span), signed_bytes_base64_encoded_buf);
 
 		err = az_iot_hub_client_sas_get_password(&iot_hub_client, token_expiration_unix_time_s,
 			signed_bytes_base64_encoded_span, AZ_SPAN_EMPTY, final_password, sizeof(final_password), &final_password_len);
@@ -1138,9 +1164,10 @@ int azure_iot_hub_connect(const struct azure_iot_hub_config *config)
 			err = -EFAULT;
 			goto exit;
 		}
+
 		conn_params.password.ptr = final_password;
 		conn_params.password.size = final_password_len;
-		LOG_DBG("Final password: %.*s", final_password_len, final_password);
+		LOG_DBG("Final password: %d [%.*s]", final_password_len, final_password_len, final_password);
 	}
 
 	err = mqtt_helper_connect(&conn_params);

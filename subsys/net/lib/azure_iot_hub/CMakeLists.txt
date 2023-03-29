@@ -6,6 +6,8 @@
 
 zephyr_library_sources(
 	src/azure_iot_hub.c
+	src/hmac_sha256.c
+	src/sha256.c
 )
 
 zephyr_library_sources_ifdef(CONFIG_AZURE_IOT_HUB_DPS
