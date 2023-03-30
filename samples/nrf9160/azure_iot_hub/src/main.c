@@ -50,6 +50,7 @@ static atomic_t event_interval = EVENT_INTERVAL;
 
 char cell_id[16] = { 0 };
 char tracking_area_code[8] = { 0 };
+double freq_value = 778;
 
 #ifdef CONFIG_AZURE_IOT_HUB_DPS
 static bool dps_was_successful;
@@ -148,13 +149,15 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 	cJSON_AddBoolToObject(role, "SHELL", true);
 	cJSON_AddStringToObject(server, "url", "mqtts://" CONFIG_AZURE_IOT_HUB_HOSTNAME);
 	cJSON_AddStringToObject(server, "user", "");
+*/
 
 	// Basic properties
 	cJSON_AddStringToObject(root_obj, "d_fw", "0.0.1-d");
 	cJSON_AddStringToObject(root_obj, "d_hw", "Captis Emulator Thingy91");
-	cJSON_AddNumberToObject(root_obj, "freq", 778);
-	cJSON_AddStringToObject(root_obj, "iccid", CONFIG_AZURE_IOT_HUB_DEVICE_ID);
-*/
+
+	cJSON_AddItemToObject(root_obj, "freq", cJSON_CreateRaw("778"));
+
+	cJSON_AddItemToObject(root_obj, "iccid", cJSON_CreateStringReference(CONFIG_AZURE_IOT_HUB_DEVICE_ID));	
 	cJSON_AddStringToObject(root_obj, "imei", "35047791735879");
 	cJSON_AddStringToObject(root_obj, "imsi", "505016210173155");
 	cJSON_AddStringToObject(root_obj, "m_fw", "0.0.1-m");
