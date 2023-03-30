@@ -50,7 +50,6 @@ static atomic_t event_interval = EVENT_INTERVAL;
 
 char cell_id[16] = { 0 };
 char tracking_area_code[8] = { 0 };
-double freq_value = 778;
 
 #ifdef CONFIG_AZURE_IOT_HUB_DPS
 static bool dps_was_successful;
@@ -108,12 +107,11 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 	cJSON_AddStringToObject(logging_obj, "interval", "PT15M");
 	cJSON_AddStringToObject(logging_obj, "trigger", "CLOCK");
 
-	/*
 	// Network
 	struct cJSON *network_obj = cJSON_AddObjectToObject(config_obj, "network");
 	struct cJSON *network_a1_obj = cJSON_AddObjectToObject(network_obj, "a1");
-	cJSON_AddStringToObject(network_a1_obj, "apn", CONFIG_PDN_DEFAULT_APN);
-	cJSON_AddStringToObject(network_a1_obj, "prot", family_string[CONFIG_PDN_DEFAULT_FAM]);
+	cJSON_AddItemToObject(network_a1_obj, "apn", cJSON_CreateStringReference(CONFIG_PDN_DEFAULT_APN));
+	cJSON_AddItemToObject(network_a1_obj, "prot", cJSON_CreateStringReference(family_string[CONFIG_PDN_DEFAULT_FAM]));
 	cJSON_AddStringToObject(network_a1_obj, "radio", "Cat M1");
 
 	// Process Alarms
@@ -125,8 +123,12 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 	struct cJSON *sensors_obj = cJSON_AddObjectToObject(config_obj, "sensors");
 	struct cJSON *sensors_an1_obj = cJSON_AddObjectToObject(sensors_obj, "an1");
 	cJSON_AddBoolToObject(sensors_an1_obj, "log_en", false);
-	cJSON_AddNumberToObject(sensors_an1_obj, "offset", 0);
-	cJSON_AddNumberToObject(sensors_an1_obj, "scaling", 10);
+
+	//cJSON_AddNumberToObject(sensors_an1_obj, "offset", 0);
+	//cJSON_AddNumberToObject(sensors_an1_obj, "scaling", 10);
+	cJSON_AddItemToObject(sensors_an1_obj, "offset", cJSON_CreateRaw("0"));
+	cJSON_AddItemToObject(sensors_an1_obj, "scaling", cJSON_CreateRaw("10"));
+
 	cJSON_AddStringToObject(sensors_an1_obj, "units", "m");
 	// TODO: Add more, waketime
 
@@ -139,23 +141,25 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 	server = cJSON_AddObjectToObject(server_obj, "s1"); // TODO: s4
 	mqtt = cJSON_AddObjectToObject(server, "mqtt");
 	cJSON_AddStringToObject(mqtt, "auth_type", "SAS");
-	cJSON_AddStringToObject(mqtt, "device_id", CONFIG_AZURE_IOT_HUB_DEVICE_ID);
+	cJSON_AddItemToObject(mqtt, "device_id", cJSON_CreateStringReference(CONFIG_AZURE_IOT_HUB_DEVICE_ID));
 	cJSON_AddStringToObject(mqtt, "variant", "AZURE");
 	role = cJSON_AddObjectToObject(server, "role");
+	/*
 	cJSON_AddBoolToObject(role, "CONFIG", true);
 	cJSON_AddBoolToObject(role, "EVENTS", true);
 	cJSON_AddBoolToObject(role, "FOTA_OPS", true);
 	cJSON_AddBoolToObject(role, "MEAS", true);
 	cJSON_AddBoolToObject(role, "SHELL", true);
+	*/
 	cJSON_AddStringToObject(server, "url", "mqtts://" CONFIG_AZURE_IOT_HUB_HOSTNAME);
 	cJSON_AddStringToObject(server, "user", "");
-*/
 
 	// Basic properties
 	cJSON_AddStringToObject(root_obj, "d_fw", "0.0.1-d");
 	cJSON_AddStringToObject(root_obj, "d_hw", "Captis Emulator Thingy91");
 
 	cJSON_AddItemToObject(root_obj, "freq", cJSON_CreateRaw("778"));
+	//cJSON_AddNumberToObject(root_obj, "freq", freq_value);
 
 	cJSON_AddItemToObject(root_obj, "iccid", cJSON_CreateStringReference(CONFIG_AZURE_IOT_HUB_DEVICE_ID));	
 	cJSON_AddStringToObject(root_obj, "imei", "35047791735879");
