@@ -37,6 +37,8 @@ struct method_data {
 struct k_work twin_report_work;
 struct k_work_delayable send_event_work;
 
+struct k_work initial_properties_work;
+
 static char recv_buf[RECV_BUF_SIZE];
 static void direct_method_handler(struct k_work *work);
 static K_SEM_DEFINE(network_connected_sem, 0, 1);
@@ -180,6 +182,9 @@ static void azure_event_handler(struct azure_iot_hub_evt *const evt)
 		 */
 		k_work_reschedule_for_queue(&application_work_q,
 					    &send_event_work, K_NO_WAIT);
+
+		k_work_submit_to_queue(&application_work_q, &initial_properties_work);
+
 		break;
 	case AZURE_IOT_HUB_EVT_DATA_RECEIVED:
 		LOG_INF("AZURE_IOT_HUB_EVT_DATA_RECEIVED");
@@ -342,6 +347,38 @@ static void twin_report_work_fn(struct k_work *work)
 	LOG_INF("New telemetry interval has been applied: %d",  new_interval);
 }
 
+static void initial_properties_work_fn(struct k_work *work)
+{
+	int err;
+	char buf[100];
+	ssize_t len;
+	struct azure_iot_hub_msg data = {
+		.topic.type = AZURE_IOT_HUB_TOPIC_TWIN_REPORTED,
+		.payload.ptr = buf,
+		.qos = MQTT_QOS_0_AT_MOST_ONCE,
+	};
+
+	int interval = atomic_get(&event_interval);
+	LOG_INF("Sending initial properties, interval = %d", interval);
+
+	len = snprintk(buf, sizeof(buf),
+		       "{\"telemetryInterval\":%d}", interval);
+	if (len <= 0) {
+		LOG_ERR("Failed to create twin report");
+		return;
+	}
+
+	data.payload.size = len;
+
+	err = azure_iot_hub_send(&data);
+	if (err) {
+		LOG_ERR("Failed to send twin report");
+		return;
+	}
+
+	LOG_INF("Initial properties sent");
+}
+
 #if IS_ENABLED(CONFIG_LTE_LINK_CONTROL)
 
 static void lte_handler(const struct lte_lc_evt *const evt)
@@ -420,6 +457,9 @@ static void work_init(void)
 	k_work_init(&method_data.work, direct_method_handler);
 	k_work_init(&twin_report_work, twin_report_work_fn);
 	k_work_init_delayable(&send_event_work, send_event);
+
+	k_work_init(&initial_properties_work, initial_properties_work_fn);
+
 	k_work_queue_start(&application_work_q, application_stack_area,
 		       K_THREAD_STACK_SIZEOF(application_stack_area),
 		       K_HIGHEST_APPLICATION_THREAD_PRIO, NULL);
@@ -601,4 +641,6 @@ void main(void)
 	 * See azure_event_handler() for which actions will be taken on the
 	 * various events.
 	 */
+
+	//send_initial_properties();
 }
