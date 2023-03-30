@@ -144,13 +144,11 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 	cJSON_AddItemToObject(mqtt, "device_id", cJSON_CreateStringReference(CONFIG_AZURE_IOT_HUB_DEVICE_ID));
 	cJSON_AddStringToObject(mqtt, "variant", "AZURE");
 	role = cJSON_AddObjectToObject(server, "role");
-	/*
 	cJSON_AddBoolToObject(role, "CONFIG", true);
 	cJSON_AddBoolToObject(role, "EVENTS", true);
 	cJSON_AddBoolToObject(role, "FOTA_OPS", true);
 	cJSON_AddBoolToObject(role, "MEAS", true);
 	cJSON_AddBoolToObject(role, "SHELL", true);
-	*/
 	cJSON_AddStringToObject(server, "url", "mqtts://" CONFIG_AZURE_IOT_HUB_HOSTNAME);
 	cJSON_AddStringToObject(server, "user", "");
 
@@ -490,7 +488,7 @@ static void initial_properties_work_fn(struct k_work *work)
 
 	LOG_INF("Generating initial properties");
 
-	k_msleep(1000);
+	k_msleep(1400);
 
 	len = build_reported_properties(buf, sizeof(buf));
 	if (len <= 0) {
