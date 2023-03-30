@@ -48,6 +48,9 @@ static K_SEM_DEFINE(network_connected_sem, 0, 1);
 static K_SEM_DEFINE(recv_buf_sem, 1, 1);
 static atomic_t event_interval = EVENT_INTERVAL;
 
+char cell_id[16] = { 0 };
+char tracking_area_code[8] = { 0 };
+
 #ifdef CONFIG_AZURE_IOT_HUB_DPS
 static bool dps_was_successful;
 #endif
@@ -71,17 +74,16 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 		goto clean_exit;
 	}
 
-	cJSON_AddStringToObject(root_obj, "LAC", "703a");
+	cJSON_AddStringToObject(root_obj, "LAC", tracking_area_code);
 	cJSON_AddStringToObject(root_obj, "blv", "0.7");
-	cJSON_AddStringToObject(root_obj, "cell_id", "8B8870D");
+	cJSON_AddStringToObject(root_obj, "cell_id", cell_id);
 	cJSON_AddStringToObject(root_obj, "cfg_v", "1.1.0");
 
-	/*
 	// Config
 	struct cJSON *config_obj = cJSON_AddObjectToObject(root_obj, "config");
 
 	// See paho_iot_pnn_sample for iso format (search iso8601)
-	cJSON_AddStringToObject(config_obj, "changed", "2023-02-28T07:17:23Z");
+	cJSON_AddStringToObject(config_obj, "changed", "2023-03-30T01:23:45Z");
 
 	// TODO: Report actual interval
 	//int interval = atomic_get(&event_interval);
@@ -105,6 +107,7 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 	cJSON_AddStringToObject(logging_obj, "interval", "PT15M");
 	cJSON_AddStringToObject(logging_obj, "trigger", "CLOCK");
 
+	/*
 	// Network
 	struct cJSON *network_obj = cJSON_AddObjectToObject(config_obj, "network");
 	struct cJSON *network_a1_obj = cJSON_AddObjectToObject(network_obj, "a1");
@@ -151,6 +154,7 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 	cJSON_AddStringToObject(root_obj, "d_hw", "Captis Emulator Thingy91");
 	cJSON_AddNumberToObject(root_obj, "freq", 778);
 	cJSON_AddStringToObject(root_obj, "iccid", CONFIG_AZURE_IOT_HUB_DEVICE_ID);
+*/
 	cJSON_AddStringToObject(root_obj, "imei", "35047791735879");
 	cJSON_AddStringToObject(root_obj, "imsi", "505016210173155");
 	cJSON_AddStringToObject(root_obj, "m_fw", "0.0.1-m");
@@ -159,7 +163,6 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 	cJSON_AddStringToObject(root_obj, "mnc", "01");
 	cJSON_AddStringToObject(root_obj, "nw_type", "CAT_M1");
 	cJSON_AddStringToObject(root_obj, "serial", "8500271026750");
-*/
 
 	bool success = cJSON_PrintPreallocated(root_obj, buffer, buffer_length, false);
 	if (!success) {
@@ -552,6 +555,8 @@ static void lte_handler(const struct lte_lc_evt *const evt)
 	case LTE_LC_EVT_CELL_UPDATE:
 		LOG_INF("LTE cell changed: Cell ID: %d, Tracking area: %d",
 			evt->cell.id, evt->cell.tac);
+		snprintf(cell_id, sizeof(cell_id), "%X", evt->cell.id);
+		snprintf(tracking_area_code, sizeof(tracking_area_code), "%x", evt->cell.tac);
 		break;
 	default:
 		break;
