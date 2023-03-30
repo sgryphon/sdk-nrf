@@ -353,10 +353,10 @@ static void azure_event_handler(struct azure_iot_hub_evt *const evt)
 	}
 }
 
-static void send_event(struct k_work *work)
+static void send_message1()
 {
 	int err;
-	static char buf[60];
+	static char buf[300];
 	ssize_t len;
 	struct azure_iot_hub_msg msg = {
 		.topic.type = AZURE_IOT_HUB_TOPIC_EVENT,
@@ -364,26 +364,112 @@ static void send_event(struct k_work *work)
 		.qos = MQTT_QOS_0_AT_MOST_ONCE,
 	};
 
-	len = snprintk(buf, sizeof(buf),
-		       "{\"temperature\":%d.%d,\"timestamp\":%d}",
-		       25, k_uptime_get_32() % 10, k_uptime_get_32());
+	static const char *template = "{ \"l011\": %f, \"l174\": %f, \"l175\": %f, \"m_stored\": 0, \"m_sent\": 0, \"tamper\": 0, \"rsrp\": %d, \"rsrq\": %d, \"sinr\": %f }";
+
+	double l011_battery_V = 3.65;
+	double l174_module_mA = 73.0;
+	double l175_sensing_mA = 0.0;
+	int rsrp = -110;
+	int rsrq = -14;
+	double sinr = -1.8;
+
+	// len = snprintk(buf, sizeof(buf),
+	// 	       "{\"temperature\":%d.%d,\"timestamp\":%d}",
+	// 	       25, k_uptime_get_32() % 10, k_uptime_get_32());
+	len = snprintk(buf, sizeof(buf), template, l011_battery_V, l174_module_mA, l175_sensing_mA, rsrp, rsrq, sinr);
 	if ((len < 0) || (len > sizeof(buf))) {
-		LOG_ERR("Failed to populate event buffer");
-		goto exit;
+		LOG_ERR("Failed to populate event 1 buffer");
+		return;
 	}
 
 	msg.payload.size = len;
 
-	LOG_INF("Sending event:%s", buf);
+	LOG_INF("Sending event 1:%s", buf);
 
 	err = azure_iot_hub_send(&msg);
 	if (err) {
-		LOG_ERR("Failed to send event");
-		goto exit;
+		LOG_ERR("Failed to send event 1");
+		return;
 	}
 
-	LOG_INF("Event was successfully sent");
-exit:
+	LOG_INF("Event 1 was successfully sent");
+}
+
+static void send_message2()
+{
+	int err;
+	static char buf[100];
+	ssize_t len;
+	struct azure_iot_hub_msg msg = {
+		.topic.type = AZURE_IOT_HUB_TOPIC_EVENT,
+		.payload.ptr = buf,
+		.qos = MQTT_QOS_0_AT_MOST_ONCE,
+	};
+
+	static const char *template = "{ \"l060\": %f }";
+
+	double l060_temperature_C = 23.5;
+
+	len = snprintk(buf, sizeof(buf), template, l060_temperature_C);
+	if ((len < 0) || (len > sizeof(buf))) {
+		LOG_ERR("Failed to populate event 2 buffer");
+		return;
+	}
+
+	msg.payload.size = len;
+
+	LOG_INF("Sending event 2:%s", buf);
+
+	err = azure_iot_hub_send(&msg);
+	if (err) {
+		LOG_ERR("Failed to send event 2");
+		return;
+	}
+
+	LOG_INF("Event 2 was successfully sent");
+}
+
+static void send_message3()
+{
+	int err;
+	static char buf[100];
+	ssize_t len;
+	struct azure_iot_hub_msg msg = {
+		.topic.type = AZURE_IOT_HUB_TOPIC_EVENT,
+		.payload.ptr = buf,
+		.qos = MQTT_QOS_0_AT_MOST_ONCE,
+	};
+
+	static const char *template = "{ \"l177\": %f }";
+
+	double l177_module_usage_mAhr = 2.769;
+
+	len = snprintk(buf, sizeof(buf), template, l177_module_usage_mAhr);
+	if ((len < 0) || (len > sizeof(buf))) {
+		LOG_ERR("Failed to populate event 3 buffer");
+		return;
+	}
+
+	msg.payload.size = len;
+
+	LOG_INF("Sending event 3:%s", buf);
+
+	err = azure_iot_hub_send(&msg);
+	if (err) {
+		LOG_ERR("Failed to send event 3");
+		return;
+	}
+
+	LOG_INF("Event 3 was successfully sent");
+}
+
+static void send_event(struct k_work *work)
+{
+	send_message1();
+	send_message2();
+	send_message3();
+
+//exit:
 	if (atomic_get(&event_interval) <= 0) {
 		LOG_ERR("The event reporting stops, interval is set to %ld",
 		       atomic_get(&event_interval));
@@ -450,6 +536,7 @@ static void twin_report_work_fn(struct k_work *work)
 		return;
 	}
 
+	// TODO: Fix this
 	len = snprintk(buf, sizeof(buf),
 		       "{\"telemetryInterval\":%d}", new_interval);
 	if (len <= 0) {
