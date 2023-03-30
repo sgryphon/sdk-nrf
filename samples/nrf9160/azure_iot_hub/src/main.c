@@ -364,19 +364,25 @@ static void send_message1()
 		.qos = MQTT_QOS_0_AT_MOST_ONCE,
 	};
 
-	static const char *template = "{ \"l011\": %f, \"l174\": %f, \"l175\": %f, \"m_stored\": 0, \"m_sent\": 0, \"tamper\": 0, \"rsrp\": %d, \"rsrq\": %d, \"sinr\": %f }";
+	static const char *template = "{ \"l011\": %d.%d, \"l174\": %d.%d, \"l175\": %d.%d, \"m_stored\": 0, \"m_sent\": 0, \"tamper\": 0, \"rsrp\": %d, \"rsrq\": %d, \"sinr\": %d.%d }";
 
-	double l011_battery_V = 3.65;
-	double l174_module_mA = 73.0;
-	double l175_sensing_mA = 0.0;
+	int l011_battery_V_x100 = 365;
+	int l174_module_mA_x10 = 730;
+	int l175_sensing_mA_x10 = 0;
 	int rsrp = -110;
 	int rsrq = -14;
-	double sinr = -1.8;
+	int sinr_x10 = -18;
 
 	// len = snprintk(buf, sizeof(buf),
 	// 	       "{\"temperature\":%d.%d,\"timestamp\":%d}",
 	// 	       25, k_uptime_get_32() % 10, k_uptime_get_32());
-	len = snprintk(buf, sizeof(buf), template, l011_battery_V, l174_module_mA, l175_sensing_mA, rsrp, rsrq, sinr);
+	len = snprintk(buf, sizeof(buf), template,
+		l011_battery_V_x100/100, l011_battery_V_x100%100,
+		l174_module_mA_x10/10, l174_module_mA_x10%10,
+		l175_sensing_mA_x10/10, l175_sensing_mA_x10%10,
+		rsrp,
+		rsrq,
+		sinr_x10/10, abs(sinr_x10)%10);
 	if ((len < 0) || (len > sizeof(buf))) {
 		LOG_ERR("Failed to populate event 1 buffer");
 		return;
@@ -406,11 +412,11 @@ static void send_message2()
 		.qos = MQTT_QOS_0_AT_MOST_ONCE,
 	};
 
-	static const char *template = "{ \"l060\": %f }";
+	static const char *template = "{ \"l060\": %d.%d }";
 
-	double l060_temperature_C = 23.5;
+	int l060_temperature_C_x100 = 2350;
 
-	len = snprintk(buf, sizeof(buf), template, l060_temperature_C);
+	len = snprintk(buf, sizeof(buf), template, l060_temperature_C_x100/100, l060_temperature_C_x100%100);
 	if ((len < 0) || (len > sizeof(buf))) {
 		LOG_ERR("Failed to populate event 2 buffer");
 		return;
@@ -440,11 +446,11 @@ static void send_message3()
 		.qos = MQTT_QOS_0_AT_MOST_ONCE,
 	};
 
-	static const char *template = "{ \"l177\": %f }";
+	static const char *template = "{ \"l177\": %d.%d }";
 
-	double l177_module_usage_mAhr = 2.769;
+	int l177_module_usage_mAhr_x1000 = 2769;
 
-	len = snprintk(buf, sizeof(buf), template, l177_module_usage_mAhr);
+	len = snprintk(buf, sizeof(buf), template, l177_module_usage_mAhr_x1000/1000, l177_module_usage_mAhr_x1000%1000);
 	if ((len < 0) || (len > sizeof(buf))) {
 		LOG_ERR("Failed to populate event 3 buffer");
 		return;
