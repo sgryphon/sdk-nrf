@@ -14,6 +14,9 @@
 #include <cJSON_os.h>
 #include <zephyr/logging/log.h>
 
+// https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/libraries/others/date_time.html
+#include <date_time.h>
+
 #if IS_ENABLED(CONFIG_LTE_LINK_CONTROL)
 #include <modem/lte_lc.h>
 #endif
@@ -56,9 +59,126 @@ static bool dps_was_successful;
 static K_THREAD_STACK_DEFINE(application_stack_area, APP_WORK_Q_STACK_SIZE);
 static struct k_work_q application_work_q;
 
+
+static char* family_string[] = { "IPV4", "IPV6", "IPV4V6", "Non-IP" };
+
+static int build_reported_properties(char *buffer, const int buffer_length)
+{
+	int length = 0;
+	struct cJSON *root_obj = cJSON_CreateObject();
+	if (root_obj == NULL) {
+		LOG_ERR("Error creating properties object");
+		goto clean_exit;
+	}
+
+	cJSON_AddStringToObject(root_obj, "LAC", "703a");
+	cJSON_AddStringToObject(root_obj, "blv", "0.7");
+	cJSON_AddStringToObject(root_obj, "cell_id", "8B8870D");
+	cJSON_AddStringToObject(root_obj, "cfg_v", "1.1.0");
+
+	/*
+	// Config
+	struct cJSON *config_obj = cJSON_AddObjectToObject(root_obj, "config");
+
+	// See paho_iot_pnn_sample for iso format (search iso8601)
+	cJSON_AddStringToObject(config_obj, "changed", "2023-02-28T07:17:23Z");
+
+	// TODO: Report actual interval
+	//int interval = atomic_get(&event_interval);
+	//LOG_INF("Sending initial properties, interval = %d", interval);
+
+	// Device
+	struct cJSON *device_obj = cJSON_AddObjectToObject(config_obj, "device");
+	cJSON_AddStringToObject(device_obj, "eq_name", "Purple-Captis-Emulator-Thingy91");
+	cJSON_AddStringToObject(device_obj, "error_log", "WARNING");
+	cJSON_AddStringToObject(device_obj, "gps_mode", "MANUAL");
+	cJSON_AddStringToObject(device_obj, "send_intv", "P20S"); // Was P1D
+	cJSON_AddStringToObject(device_obj, "send_tod", "12:16");
+	cJSON_AddStringToObject(device_obj, "send_tod_en", "Manual");
+	// TODO: temp
+  cJSON_AddStringToObject(device_obj, "tz", "00:00");
+
+	// Fastlog
+
+	// Logging
+	struct cJSON *logging_obj = cJSON_AddObjectToObject(config_obj, "logging");
+	cJSON_AddStringToObject(logging_obj, "interval", "PT15M");
+	cJSON_AddStringToObject(logging_obj, "trigger", "CLOCK");
+
+	// Network
+	struct cJSON *network_obj = cJSON_AddObjectToObject(config_obj, "network");
+	struct cJSON *network_a1_obj = cJSON_AddObjectToObject(network_obj, "a1");
+	cJSON_AddStringToObject(network_a1_obj, "apn", CONFIG_PDN_DEFAULT_APN);
+	cJSON_AddStringToObject(network_a1_obj, "prot", family_string[CONFIG_PDN_DEFAULT_FAM]);
+	cJSON_AddStringToObject(network_a1_obj, "radio", "Cat M1");
+
+	// Process Alarms
+
+	// Schema Version
+	cJSON_AddStringToObject(root_obj, "schema_version", "1.1.0");
+
+	// Sensors
+	struct cJSON *sensors_obj = cJSON_AddObjectToObject(config_obj, "sensors");
+	struct cJSON *sensors_an1_obj = cJSON_AddObjectToObject(sensors_obj, "an1");
+	cJSON_AddBoolToObject(sensors_an1_obj, "log_en", false);
+	cJSON_AddNumberToObject(sensors_an1_obj, "offset", 0);
+	cJSON_AddNumberToObject(sensors_an1_obj, "scaling", 10);
+	cJSON_AddStringToObject(sensors_an1_obj, "units", "m");
+	// TODO: Add more, waketime
+
+	// Server
+	struct cJSON *server_obj = cJSON_AddObjectToObject(config_obj, "server");
+	struct cJSON *server, *mqtt, *role;
+
+	// TODO: Add more servers
+
+	server = cJSON_AddObjectToObject(server_obj, "s1"); // TODO: s4
+	mqtt = cJSON_AddObjectToObject(server, "mqtt");
+	cJSON_AddStringToObject(mqtt, "auth_type", "SAS");
+	cJSON_AddStringToObject(mqtt, "device_id", CONFIG_AZURE_IOT_HUB_DEVICE_ID);
+	cJSON_AddStringToObject(mqtt, "variant", "AZURE");
+	role = cJSON_AddObjectToObject(server, "role");
+	cJSON_AddBoolToObject(role, "CONFIG", true);
+	cJSON_AddBoolToObject(role, "EVENTS", true);
+	cJSON_AddBoolToObject(role, "FOTA_OPS", true);
+	cJSON_AddBoolToObject(role, "MEAS", true);
+	cJSON_AddBoolToObject(role, "SHELL", true);
+	cJSON_AddStringToObject(server, "url", "mqtts://" CONFIG_AZURE_IOT_HUB_HOSTNAME);
+	cJSON_AddStringToObject(server, "user", "");
+
+	// Basic properties
+	cJSON_AddStringToObject(root_obj, "d_fw", "0.0.1-d");
+	cJSON_AddStringToObject(root_obj, "d_hw", "Captis Emulator Thingy91");
+	cJSON_AddNumberToObject(root_obj, "freq", 778);
+	cJSON_AddStringToObject(root_obj, "iccid", CONFIG_AZURE_IOT_HUB_DEVICE_ID);
+	cJSON_AddStringToObject(root_obj, "imei", "35047791735879");
+	cJSON_AddStringToObject(root_obj, "imsi", "505016210173155");
+	cJSON_AddStringToObject(root_obj, "m_fw", "0.0.1-m");
+	cJSON_AddStringToObject(root_obj, "m_hw", "NRF9160");
+	cJSON_AddStringToObject(root_obj, "mcc", "505");
+	cJSON_AddStringToObject(root_obj, "mnc", "01");
+	cJSON_AddStringToObject(root_obj, "nw_type", "CAT_M1");
+	cJSON_AddStringToObject(root_obj, "serial", "8500271026750");
+*/
+
+	bool success = cJSON_PrintPreallocated(root_obj, buffer, buffer_length, false);
+	if (!success) {
+		LOG_ERR("Error printing properties");
+		goto clean_exit;
+	}
+	length = strlen(buffer);
+
+clean_exit:
+	cJSON_Delete(root_obj);
+	return length;
+}
+
+
 /* Returns a positive integer if the new interval can be parsed, otherwise -1 */
 static int event_interval_get(char *buf)
 {
+	// TODO: Update for Captis properties format
+
 	struct cJSON *root_obj, *desired_obj, *event_interval_obj;
 	int new_interval = -1;
 
@@ -350,7 +470,7 @@ static void twin_report_work_fn(struct k_work *work)
 static void initial_properties_work_fn(struct k_work *work)
 {
 	int err;
-	char buf[100];
+	char buf[1000];
 	ssize_t len;
 	struct azure_iot_hub_msg data = {
 		.topic.type = AZURE_IOT_HUB_TOPIC_TWIN_REPORTED,
@@ -358,21 +478,22 @@ static void initial_properties_work_fn(struct k_work *work)
 		.qos = MQTT_QOS_0_AT_MOST_ONCE,
 	};
 
-	int interval = atomic_get(&event_interval);
-	LOG_INF("Sending initial properties, interval = %d", interval);
+	LOG_INF("Generating initial properties");
 
-	len = snprintk(buf, sizeof(buf),
-		       "{\"telemetryInterval\":%d}", interval);
+	k_msleep(1000);
+
+	len = build_reported_properties(buf, sizeof(buf));
 	if (len <= 0) {
-		LOG_ERR("Failed to create twin report");
+		LOG_ERR("Failed to create initial properties");
 		return;
 	}
 
 	data.payload.size = len;
 
+	LOG_INF("Sending initial properties length %d", data.payload.size);
 	err = azure_iot_hub_send(&data);
 	if (err) {
-		LOG_ERR("Failed to send twin report");
+		LOG_ERR("Failed to send initial properties");
 		return;
 	}
 
