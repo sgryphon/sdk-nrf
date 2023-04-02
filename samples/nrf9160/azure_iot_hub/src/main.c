@@ -13,6 +13,7 @@
 #include <cJSON.h>
 #include <cJSON_os.h>
 #include <zephyr/logging/log.h>
+#include <modem/modem_info.h>
 
 // https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/libraries/others/date_time.html
 #include <date_time.h>
@@ -51,6 +52,9 @@ static atomic_t event_interval = EVENT_INTERVAL;
 char cell_id[16] = { 0 };
 char tracking_area_code[8] = { 0 };
 
+/* Modem info */
+static struct modem_param_info modem_param;
+
 #ifdef CONFIG_AZURE_IOT_HUB_DPS
 static bool dps_was_successful;
 #endif
@@ -67,7 +71,50 @@ static char* family_string[] = { "IPV4", "IPV6", "IPV4V6", "Non-IP" };
 
 static int build_reported_properties(char *buffer, const int buffer_length)
 {
+	int err;
 	int length = 0;
+
+	// ret = modem_info_init();
+	// if (ret) {
+	// 	LOG_ERR("Modem info could not be established: %d", ret);
+	// 	return 0;
+	// }
+
+	// ret = modem_info_params_init(&modem_param);
+	// if (ret) {
+	// 	LOG_ERR("Modem parameters could not be initialized: %d", ret);
+	// 	return 0;
+	// }
+
+	err = modem_info_init();
+	if (err) {
+		LOG_WRN("Modem info initialization failed, error: %d", err);
+		return 0;
+	}
+
+	err = modem_info_params_init(&modem_param);
+	if (!err) {
+		LOG_INF("Application Name: %s", modem_param.device.app_name);
+		LOG_INF("nRF Connect SDK version: %s", modem_param.device.app_version);
+	} else {
+		LOG_WRN("Modem info params initialization failed, error: %d", err);
+		return 0;
+	}
+
+	err = modem_info_params_get(&modem_param);
+	if (!err) {
+		LOG_INF("Modem FW Ver: %s", modem_param.device.modem_fw.value_string);
+	} else {
+		LOG_WRN("Unable to obtain modem info, error: %d", err);
+		return 0;
+	}
+
+	// LOG_INF("apn=%s mcc=%s mnc=%s cellid=%s",
+	// 	modem_param.network.apn.value_string,
+	// 	modem_param.network.mcc.value_string,
+	// 	modem_param.network.mnc.value_string,
+	// 	modem_param.network.cellid_hex.value_string);
+
 	struct cJSON *root_obj = cJSON_CreateObject();
 	if (root_obj == NULL) {
 		LOG_ERR("Error creating properties object");
