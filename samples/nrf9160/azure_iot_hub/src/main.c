@@ -103,17 +103,17 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 
 	err = modem_info_params_get(&modem_param);
 	if (!err) {
-		LOG_INF("Modem FW Ver: %s", modem_param.device.modem_fw.value_string);
+		//LOG_INF("Modem FW Ver: %s", modem_param.device.modem_fw.value_string);
 	} else {
 		LOG_WRN("Unable to obtain modem info, error: %d", err);
 		return 0;
 	}
 
-	// LOG_INF("apn=%s mcc=%s mnc=%s cellid=%s",
-	// 	modem_param.network.apn.value_string,
-	// 	modem_param.network.mcc.value_string,
-	// 	modem_param.network.mnc.value_string,
-	// 	modem_param.network.cellid_hex.value_string);
+	LOG_INF("apn=%s mcc=%s mnc=%s cellid=%s",
+		modem_param.network.apn.value_string,
+		modem_param.network.mcc.value_string,
+		modem_param.network.mnc.value_string,
+		modem_param.network.cellid_hex.value_string);
 
 	struct cJSON *root_obj = cJSON_CreateObject();
 	if (root_obj == NULL) {
