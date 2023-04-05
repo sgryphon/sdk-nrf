@@ -103,7 +103,8 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 
 	err = modem_info_params_get(&modem_param);
 	if (!err) {
-		//LOG_INF("Modem FW Ver: %s", modem_param.device.modem_fw.value_string);
+		LOG_INF("Modem FW Ver: %s", modem_param.device.modem_fw.value_string);
+		LOG_INF("IP address: %s", modem_param.network.ip_address.value_string);
 	} else {
 		LOG_WRN("Unable to obtain modem info, error: %d", err);
 		return 0;
@@ -115,15 +116,22 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 		modem_param.network.mnc.value_string,
 		modem_param.network.cellid_hex.value_string);
 
+	LOG_INF("band=%s operator=%s ue=%s lte=%s nbiot=%s",
+		modem_param.network.current_band.value_string,
+		modem_param.network.current_operator.value_string,
+		modem_param.network.ue_mode.value_string,
+		modem_param.network.lte_mode.value_string,
+		modem_param.network.nbiot_mode.value_string);
+
 	struct cJSON *root_obj = cJSON_CreateObject();
 	if (root_obj == NULL) {
 		LOG_ERR("Error creating properties object");
 		goto clean_exit;
 	}
 
-	cJSON_AddStringToObject(root_obj, "LAC", tracking_area_code);
+	cJSON_AddStringToObject(root_obj, "LAC", modem_param.network.area_code.value_string);
 	cJSON_AddStringToObject(root_obj, "blv", "0.7");
-	cJSON_AddStringToObject(root_obj, "cell_id", cell_id);
+	cJSON_AddStringToObject(root_obj, "cell_id", modem_param.network.cellid_hex.value_string);
 	cJSON_AddStringToObject(root_obj, "cfg_v", "1.1.0");
 
 	// Config
@@ -157,7 +165,7 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 	// Network
 	struct cJSON *network_obj = cJSON_AddObjectToObject(config_obj, "network");
 	struct cJSON *network_a1_obj = cJSON_AddObjectToObject(network_obj, "a1");
-	cJSON_AddItemToObject(network_a1_obj, "apn", cJSON_CreateStringReference(CONFIG_PDN_DEFAULT_APN));
+	cJSON_AddStringToObject(network_a1_obj, "apn", modem_param.network.apn.value_string);
 	cJSON_AddItemToObject(network_a1_obj, "prot", cJSON_CreateStringReference(family_string[CONFIG_PDN_DEFAULT_FAM]));
 	cJSON_AddStringToObject(network_a1_obj, "radio", "Cat M1");
 
@@ -207,14 +215,14 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 	//cJSON_AddNumberToObject(root_obj, "freq", freq_value);
 
 	cJSON_AddItemToObject(root_obj, "iccid", cJSON_CreateStringReference(CONFIG_AZURE_IOT_HUB_DEVICE_ID));	
-	cJSON_AddStringToObject(root_obj, "imei", "35047791735879");
-	cJSON_AddStringToObject(root_obj, "imsi", "505016210173155");
-	cJSON_AddStringToObject(root_obj, "m_fw", "0.0.1-m");
+	cJSON_AddStringToObject(root_obj, "imei", modem_param.device.imei.value_string);
+	cJSON_AddStringToObject(root_obj, "imsi", modem_param.sim.imsi.value_string);
+	cJSON_AddStringToObject(root_obj, "m_fw", modem_param.device.modem_fw.value_string);
 	cJSON_AddStringToObject(root_obj, "m_hw", "NRF9160");
-	cJSON_AddStringToObject(root_obj, "mcc", "505");
-	cJSON_AddStringToObject(root_obj, "mnc", "01");
+	cJSON_AddStringToObject(root_obj, "mcc", modem_param.network.mcc.value_string);
+	cJSON_AddStringToObject(root_obj, "mnc", modem_param.network.mnc.value_string);
 	cJSON_AddStringToObject(root_obj, "nw_type", "CAT_M1");
-	cJSON_AddStringToObject(root_obj, "serial", "8500271026750");
+	cJSON_AddStringToObject(root_obj, "serial", modem_param.sim.iccid.value_string);
 
 	bool success = cJSON_PrintPreallocated(root_obj, buffer, buffer_length, false);
 	if (!success) {
