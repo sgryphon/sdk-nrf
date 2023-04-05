@@ -49,8 +49,7 @@ static K_SEM_DEFINE(network_connected_sem, 0, 1);
 static K_SEM_DEFINE(recv_buf_sem, 1, 1);
 static atomic_t event_interval = EVENT_INTERVAL;
 
-char cell_id[16] = { 0 };
-char tracking_area_code[8] = { 0 };
+char hw_version[48] = { 0 };
 
 /* Modem info */
 static struct modem_param_info modem_param;
@@ -73,18 +72,6 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 {
 	int err;
 	int length = 0;
-
-	// ret = modem_info_init();
-	// if (ret) {
-	// 	LOG_ERR("Modem info could not be established: %d", ret);
-	// 	return 0;
-	// }
-
-	// ret = modem_info_params_init(&modem_param);
-	// if (ret) {
-	// 	LOG_ERR("Modem parameters could not be initialized: %d", ret);
-	// 	return 0;
-	// }
 
 	err = modem_info_init();
 	if (err) {
@@ -122,6 +109,8 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 		modem_param.network.ue_mode.value_string,
 		modem_param.network.lte_mode.value_string,
 		modem_param.network.nbiot_mode.value_string);
+
+//	modem_info_get_hw_version(hw_version, sizeof(hw_version));
 
 	struct cJSON *root_obj = cJSON_CreateObject();
 	if (root_obj == NULL) {
@@ -218,7 +207,7 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 	cJSON_AddStringToObject(root_obj, "imei", modem_param.device.imei.value_string);
 	cJSON_AddStringToObject(root_obj, "imsi", modem_param.sim.imsi.value_string);
 	cJSON_AddStringToObject(root_obj, "m_fw", modem_param.device.modem_fw.value_string);
-	cJSON_AddStringToObject(root_obj, "m_hw", "NRF9160");
+	cJSON_AddStringToObject(root_obj, "m_hw", hw_version);
 	cJSON_AddStringToObject(root_obj, "mcc", modem_param.network.mcc.value_string);
 	cJSON_AddStringToObject(root_obj, "mnc", modem_param.network.mnc.value_string);
 	cJSON_AddStringToObject(root_obj, "nw_type", "CAT_M1");
@@ -419,23 +408,31 @@ static void send_message1()
 		.qos = MQTT_QOS_0_AT_MOST_ONCE,
 	};
 
+	//static const char *template = "{ \"l011\": %d.%d, \"l174\": %d.%d, \"l175\": %d.%d, \"m_stored\": 0, \"m_sent\": 0, \"tamper\": 0, \"rsrp\": %d, \"rsrq\": %d, \"sinr\": %d.%d }";
 	static const char *template = "{ \"l011\": %d.%d, \"l174\": %d.%d, \"l175\": %d.%d, \"m_stored\": 0, \"m_sent\": 0, \"tamper\": 0, \"rsrp\": %d, \"rsrq\": %d, \"sinr\": %d.%d }";
 
-	int l011_battery_V_x100 = 365;
+	err = modem_info_params_get(&modem_param);
+	if (err) {
+		LOG_WRN("Unable to obtain modem info for message, error: %d", err);
+	}
+
+	int l011_battery_mV = modem_param.device.battery.value;
 	int l174_module_mA_x10 = 730;
 	int l175_sensing_mA_x10 = 0;
-	int rsrp = -110;
+	int rsrp = modem_param.network.rsrp.value;
+	int rsrp_dbM = 0;
 	int rsrq = -14;
 	int sinr_x10 = -18;
 
-	// len = snprintk(buf, sizeof(buf),
-	// 	       "{\"temperature\":%d.%d,\"timestamp\":%d}",
-	// 	       25, k_uptime_get_32() % 10, k_uptime_get_32());
+  modem_info_get_rsrp(&rsrp_dbM);
+
+	LOG_INF("rsrp=%s rsrp.v=%d rsrp_dbM=%d", modem_param.network.rsrp.value_string, rsrp, rsrp_dbM);
+
 	len = snprintk(buf, sizeof(buf), template,
-		l011_battery_V_x100/100, l011_battery_V_x100%100,
+		l011_battery_mV/1000, l011_battery_mV%1000, // report as V
 		l174_module_mA_x10/10, l174_module_mA_x10%10,
 		l175_sensing_mA_x10/10, l175_sensing_mA_x10%10,
-		rsrp,
+		rsrp_dbM,
 		rsrq,
 		sinr_x10/10, abs(sinr_x10)%10);
 	if ((len < 0) || (len > sizeof(buf))) {
@@ -469,9 +466,11 @@ static void send_message2()
 
 	static const char *template = "{ \"l060\": %d.%d }";
 
-	int l060_temperature_C_x100 = 2350;
+	int l060_temperature_C = 0;
 
-	len = snprintk(buf, sizeof(buf), template, l060_temperature_C_x100/100, l060_temperature_C_x100%100);
+	modem_info_get_temperature(&l060_temperature_C);
+
+	len = snprintk(buf, sizeof(buf), template, l060_temperature_C, 0);
 	if ((len < 0) || (len > sizeof(buf))) {
 		LOG_ERR("Failed to populate event 2 buffer");
 		return;
@@ -708,8 +707,6 @@ static void lte_handler(const struct lte_lc_evt *const evt)
 	case LTE_LC_EVT_CELL_UPDATE:
 		LOG_INF("LTE cell changed: Cell ID: %d, Tracking area: %d",
 			evt->cell.id, evt->cell.tac);
-		snprintf(cell_id, sizeof(cell_id), "%X", evt->cell.id);
-		snprintf(tracking_area_code, sizeof(tracking_area_code), "%x", evt->cell.tac);
 		break;
 	default:
 		break;
