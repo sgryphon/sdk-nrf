@@ -214,7 +214,7 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 	cJSON_AddItemToObject(root_obj, "freq", cJSON_CreateRaw("778"));
 	//cJSON_AddNumberToObject(root_obj, "freq", freq_value);
 
-	cJSON_AddItemToObject(root_obj, "iccid", cJSON_CreateStringReference(CONFIG_AZURE_IOT_HUB_DEVICE_ID));	
+	cJSON_AddStringToObject(root_obj, "iccid", modem_param.sim.iccid.value_string);	
 	cJSON_AddStringToObject(root_obj, "imei", modem_param.device.imei.value_string);
 	cJSON_AddStringToObject(root_obj, "imsi", modem_param.sim.imsi.value_string);
 	cJSON_AddStringToObject(root_obj, "m_fw", modem_param.device.modem_fw.value_string);
@@ -222,7 +222,7 @@ static int build_reported_properties(char *buffer, const int buffer_length)
 	cJSON_AddStringToObject(root_obj, "mcc", modem_param.network.mcc.value_string);
 	cJSON_AddStringToObject(root_obj, "mnc", modem_param.network.mnc.value_string);
 	cJSON_AddStringToObject(root_obj, "nw_type", "CAT_M1");
-	cJSON_AddStringToObject(root_obj, "serial", modem_param.sim.iccid.value_string);
+	cJSON_AddItemToObject(root_obj, "serial", cJSON_CreateStringReference(CONFIG_AZURE_IOT_HUB_DEVICE_ID));
 
 	bool success = cJSON_PrintPreallocated(root_obj, buffer, buffer_length, false);
 	if (!success) {
